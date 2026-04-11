@@ -37,20 +37,59 @@ a produccion usando Vercel (hosting) y Neon Tech (PostgreSQL serverless).
    ```
 4. Guarda este valor — lo necesitaras en los pasos siguientes
 
-### 1.3 Ejecutar las migraciones
+### 1.3 Crear las tablas en Neon
 
-Con la cadena de conexion lista, ejecuta las migraciones desde tu maquina local:
+Tienes tres opciones equivalentes. Elige la que te resulte mas comoda:
 
-```bash
-# Configura la variable de entorno temporalmente
-export DATABASE_URL="postgresql://neondb_owner:<password>@<host>.neon.tech/neondb?sslmode=require"
+---
 
-# Ejecuta el push del esquema (crea las tablas)
+#### Opcion A: SQL Editor de Neon (sin instalar nada — recomendada)
+
+1. En el dashboard de Neon, click en **SQL Editor** en el menu lateral
+2. Asegurate de que la base de datos seleccionada es `neondb`
+3. Copia y pega el contenido del archivo `scripts/init-db.sql` del proyecto
+4. Click en **Run** (o `Ctrl+Enter`)
+5. Deberia mostrar una tabla de verificacion con `mallas` y `proyecciones` y el numero de columnas de cada una
+
+---
+
+#### Opcion B: drizzle-kit push (desde tu maquina local)
+
+Requiere tener Node.js y el proyecto clonado localmente.
+
+**En Windows (PowerShell):**
+```powershell
+$env:DATABASE_URL="postgresql://neondb_owner:<password>@<host>.neon.tech/neondb?sslmode=require"
 npx drizzle-kit push
 ```
 
-Verifica que las tablas `mallas` y `proyecciones` fueron creadas en el panel de Neon:
-**Tables** > deberia mostrar ambas tablas con sus columnas e indices.
+**En Mac/Linux:**
+```bash
+export DATABASE_URL="postgresql://neondb_owner:<password>@<host>.neon.tech/neondb?sslmode=require"
+npx drizzle-kit push
+```
+
+---
+
+#### Opcion C: psql (si tienes el cliente PostgreSQL instalado)
+
+```bash
+psql "postgresql://neondb_owner:<password>@<host>.neon.tech/neondb?sslmode=require" \
+  -f scripts/init-db.sql
+```
+
+---
+
+#### Verificar que las tablas se crearon
+
+En el dashboard de Neon, ve a **Tables** en el menu lateral. Deberia mostrar:
+
+| Tabla | Columnas |
+|-------|----------|
+| `mallas` | 8 |
+| `proyecciones` | 20 |
+
+Si no aparecen, revisa la seccion **Resolucion de Problemas** al final de esta guia.
 
 ---
 

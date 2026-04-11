@@ -60,20 +60,56 @@ export function UploadPanel() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Carga de Archivos</h2>
+      <h2 className="text-xl font-semibold text-slate-800">Carga de Archivos</h2>
+
       <div className="space-y-2">
-        <label className="block font-medium">Archivo Histórico (.xlsx / .xls)</label>
-        <input ref={historicoRef} type="file" accept=".xlsx,.xls" onChange={handleHistorico} disabled={loadingHistorico} className="block" />
-        {loadingHistorico && <p className="text-sm text-gray-500">Procesando...</p>}
-        {historicoStatus?.resumen && <p className="text-sm text-green-600">{historicoStatus.resumen}</p>}
-        {historicoStatus?.error && <p className="text-sm text-red-600">{historicoStatus.error}</p>}
+        <label className="block text-sm font-semibold text-slate-700">
+          Archivo Histórico (.xlsx / .xls)
+        </label>
+        <input
+          ref={historicoRef}
+          type="file"
+          accept=".xlsx,.xls"
+          onChange={handleHistorico}
+          disabled={loadingHistorico}
+          className="block w-full text-sm text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer disabled:opacity-50"
+        />
+        {loadingHistorico && <p className="text-sm text-slate-500">Procesando...</p>}
+        {historicoStatus?.resumen && (
+          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-1.5">
+            ✓ {historicoStatus.resumen}
+          </p>
+        )}
+        {historicoStatus?.error && (
+          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-1.5">
+            ✗ {historicoStatus.error}
+          </p>
+        )}
       </div>
+
       <div className="space-y-2">
-        <label className="block font-medium">Archivo de Malla Curricular (.xlsx / .xls)</label>
-        <input ref={mallaRef} type="file" accept=".xlsx,.xls" onChange={handleMalla} disabled={loadingMalla} className="block" />
-        {loadingMalla && <p className="text-sm text-gray-500">Procesando...</p>}
-        {mallaStatus?.resumen && <p className="text-sm text-green-600">{mallaStatus.resumen}</p>}
-        {mallaStatus?.error && <p className="text-sm text-red-600">{mallaStatus.error}</p>}
+        <label className="block text-sm font-semibold text-slate-700">
+          Archivo de Malla Curricular (.xlsx / .xls)
+        </label>
+        <input
+          ref={mallaRef}
+          type="file"
+          accept=".xlsx,.xls"
+          onChange={handleMalla}
+          disabled={loadingMalla}
+          className="block w-full text-sm text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer disabled:opacity-50"
+        />
+        {loadingMalla && <p className="text-sm text-slate-500">Procesando...</p>}
+        {mallaStatus?.resumen && (
+          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-1.5">
+            ✓ {mallaStatus.resumen}
+          </p>
+        )}
+        {mallaStatus?.error && (
+          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-1.5">
+            ✗ {mallaStatus.error}
+          </p>
+        )}
       </div>
     </div>
   );

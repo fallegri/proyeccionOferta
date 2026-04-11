@@ -45,17 +45,26 @@ export function ExportButton() {
   }
 
   return (
-    <div className="flex items-center gap-4 flex-wrap">
-      <button onClick={handleExport} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-        Exportar Excel
+    <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-slate-200">
+      <button
+        onClick={handleExport}
+        className="bg-emerald-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-emerald-700 transition-colors"
+      >
+        ↓ Exportar Excel
       </button>
-      <button onClick={handleSave} disabled={saving || saved} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50">
-        {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar Proyección'}
+      <button
+        onClick={handleSave}
+        disabled={saving || saved}
+        className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {saving ? 'Guardando...' : saved ? '✓ Guardado' : 'Guardar Proyección'}
       </button>
       {saveError && (
         <div className="flex items-center gap-2">
-          <span className="text-red-600 text-sm">{saveError}</span>
-          <button onClick={handleSave} className="text-sm underline text-blue-600">Reintentar</button>
+          <span className="text-red-600 text-sm font-medium">{saveError}</span>
+          <button onClick={handleSave} className="text-sm underline text-blue-600 hover:text-blue-800">
+            Reintentar
+          </button>
         </div>
       )}
     </div>

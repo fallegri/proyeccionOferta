@@ -39,21 +39,21 @@ export default function Home() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      <h1 className="text-2xl font-bold">Estimador de Crecimiento Estudiantil</h1>
+      <h1 className="text-2xl font-bold text-slate-900">Estimador de Crecimiento Estudiantil</h1>
 
       {errores.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded p-4">
-          {errores.map((e, i) => <p key={i} className="text-red-700 text-sm">{e}</p>)}
+        <div className="bg-red-50 border border-red-300 rounded-lg p-4">
+          {errores.map((e, i) => <p key={i} className="text-red-700 text-sm font-medium">{e}</p>)}
         </div>
       )}
 
       {/* Step 1: Upload */}
-      <section className="bg-white border rounded-lg p-6 shadow-sm">
+      <section className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
         <UploadPanel />
         {paso === 'carga' && historicoRows.length > 0 && mallaRows.length > 0 && (
           <button
             onClick={() => dispatch({ type: 'SET_PASO', payload: 'config' })}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="mt-6 bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
           >
             Continuar a Configuración →
           </button>
@@ -62,15 +62,15 @@ export default function Home() {
 
       {/* Step 2: Config */}
       {(paso === 'config' || paso === 'resultados') && (
-        <section className="bg-white border rounded-lg p-6 shadow-sm">
+        <section className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
           <ConfigPanel onNext={handleCalcular} />
-          {cargando && <p className="mt-2 text-gray-500">Calculando proyecciones...</p>}
+          {cargando && <p className="mt-2 text-slate-600 text-sm">Calculando proyecciones...</p>}
         </section>
       )}
 
       {/* Step 3: Results */}
       {paso === 'resultados' && (
-        <section className="bg-white border rounded-lg p-6 shadow-sm space-y-4">
+        <section className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
           <ResultsTable />
           <ExportButton />
         </section>
