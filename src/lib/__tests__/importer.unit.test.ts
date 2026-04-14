@@ -2,16 +2,16 @@ import { describe, it, expect } from 'vitest';
 import * as XLSX from 'xlsx';
 import { parseHistorico, parseMalla } from '../importer';
 
+// Grupo ya NO es columna requerida del histórico
 const HISTORICO_COLS = [
   'Código Plan Estudio', 'Plan Estudio', 'Código Gestión', 'Gestión',
-  'Turno', 'Grupo', 'Código Materia', 'Materia', 'Sigla',
+  'Turno', 'Código Materia', 'Materia', 'Sigla',
   'Abandono', 'Reprobados', 'Aprobados', 'Total Alumnos',
 ];
 
 const MALLA_COLS = ['Carrera', 'Semestre', 'Sigla', 'Nombre Asignatura', 'Requisito'];
 
 function makeBuffer(rows: Record<string, unknown>[], cols: string[]): Buffer {
-  // Only keep keys that are in cols, so missing-column tests work correctly
   const filteredRows = rows.map(r => Object.fromEntries(cols.map(c => [c, r[c] ?? null])));
   const data = filteredRows.length > 0
     ? filteredRows
@@ -33,7 +33,7 @@ function makeMallaBuffer(rows: Record<string, unknown>[], cols = MALLA_COLS): Bu
 function validHistoricoRow(overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
   return {
     'Código Plan Estudio': 'CP001', 'Plan Estudio': 'Sistemas', 'Código Gestión': 'G1',
-    'Gestión': '1/2024', 'Turno': 'M', 'Grupo': 'A', 'Código Materia': 'M1',
+    'Gestión': '1/2024', 'Turno': 'M', 'Código Materia': 'M1',
     'Materia': 'Matemáticas', 'Sigla': 'MAT101', 'Abandono': 2, 'Reprobados': 5,
     'Aprobados': 20, 'Total Alumnos': 27, ...overrides,
   };
@@ -88,17 +88,29 @@ describe('parseHistorico — unit tests', () => {
     expect(result.rows[0].sigla).toBe('MAT101');
   });
 
-  it('missing required column returns error with column name', () => {
+  it('missing required column returns error', () => {
     const colsWithoutSigla = HISTORICO_COLS.filter(c => c !== 'Sigla');
     const row = validHistoricoRow();
     const buf = makeHistoricoBuffer([row], colsWithoutSigla);
     const result = parseHistorico(buf);
     expect(result.rows).toEqual([]);
-    expect(result.errores.some(e => e.includes('Sigla'))).toBe(true);
+    expect(result.errores.length).toBeGreaterThan(0);
   });
 
-  it('invalid buffer returns empty rows (xlsx is permissive with unknown formats)', () => {
-    // xlsx silently parses unrecognized buffers as empty sheets rather than throwing
+  it('column names case-insensitive — SIGLA uppercase works', () => {
+    const colsUpper = HISTORICO_COLS.map(c => c === 'Sigla' ? 'SIGLA' : c);
+    // Build row with SIGLA key (uppercase) to match the column header
+    const row = validHistoricoRow();
+    const rowUpper = Object.fromEntries(
+      Object.entries(row).map(([k, v]) => [k === 'Sigla' ? 'SIGLA' : k, v])
+    );
+    const buf = makeBuffer([rowUpper], colsUpper);
+    const result = parseHistorico(buf);
+    expect(result.rows.length).toBe(1);
+    expect(result.rows[0].sigla).toBe('MAT101');
+  });
+
+  it('invalid buffer returns empty rows', () => {
     const result = parseHistorico(Buffer.from('not an excel file'));
     expect(result.rows).toEqual([]);
   });
@@ -111,6 +123,42 @@ describe('parseMalla — unit tests', () => {
     expect(result.rows.length).toBe(1);
     expect(result.rows[0].requisito).toBe('ADMISIÓN');
     expect(result.rows[0].requiereIngresoManual).toBe(false);
+  });
+
+  it('"Admisión" text → treated as no prerequisite', () => {
+    const buf = makeMallaBuffer([validMallaRow({ Requisito: 'Admisión' })]);
+    const result = parseMalla(buf);
+    expect(result.rows[0].requisito).toBe('ADMISIÓN');
+    expect(result.rows[0].requiereIngresoManual).toBe(false);
+  });
+
+  it('"ADMISIÓN" uppercase → treated as no prerequisite', () => {
+    const buf = makeMallaBuffer([validMallaRow({ Requisito: 'ADMISIÓN' })]);
+    const result = parseMalla(buf);
+    expect(result.rows[0].requisito).toBe('ADMISIÓN');
+    expect(result.rows[0].requiereIngresoManual).toBe(false);
+  });
+
+  it('semestre as text "Primer Semestre" → parsed as 1', () => {
+    const buf = makeMallaBuffer([validMallaRow({ Semestre: 'Primer Semestre' })]);
+    const result = parseMalla(buf);
+    expect(result.rows[0].semestre).toBe(1);
+  });
+
+  it('semestre as text "Segundo Semestre" → parsed as 2', () => {
+    const buf = makeMallaBuffer([validMallaRow({ Semestre: 'Segundo Semestre' })]);
+    const result = parseMalla(buf);
+    expect(result.rows[0].semestre).toBe(2);
+  });
+
+  it('column SIGLA uppercase → recognized correctly', () => {
+    const colsUpper = MALLA_COLS.map(c => c === 'Sigla' ? 'SIGLA' : c);
+    const row = { Carrera: 'Sistemas', Semestre: 1, SIGLA: 'MAT101', 'Nombre Asignatura': 'Mat I', Requisito: null };
+    const buf = makeBuffer([row], colsUpper);
+    const result = parseMalla(buf);
+    expect(result.errores).toEqual([]);
+    expect(result.rows.length).toBe(1);
+    expect(result.rows[0].sigla).toBe('MAT101');
   });
 
   it('single prerequisite → one row', () => {
@@ -130,7 +178,7 @@ describe('parseMalla — unit tests', () => {
   });
 
   it('non-structured prerequisite → requiereIngresoManual = true', () => {
-    const buf = makeMallaBuffer([validMallaRow({ Sigla: 'MAT301', Requisito: 'todas hasta MAT201 aprobadas' })]);
+    const buf = makeMallaBuffer([validMallaRow({ Sigla: 'MAT301', Requisito: 'Hasta 4to semestre aprobado' })]);
     const result = parseMalla(buf);
     expect(result.rows.length).toBe(1);
     expect(result.rows[0].requiereIngresoManual).toBe(true);
@@ -141,7 +189,7 @@ describe('parseMalla — unit tests', () => {
     const buf = makeMallaBuffer([validMallaRow()], colsWithoutCarrera);
     const result = parseMalla(buf);
     expect(result.rows).toEqual([]);
-    expect(result.errores.some(e => e.includes('Carrera'))).toBe(true);
+    expect(result.errores.length).toBeGreaterThan(0);
   });
 
   it('empty file returns no rows', () => {

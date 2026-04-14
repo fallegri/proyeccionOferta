@@ -3,18 +3,20 @@ import * as fc from 'fast-check';
 import * as XLSX from 'xlsx';
 import { parseHistorico } from '../importer';
 
+// Solo las columnas que el importer realmente valida como requeridas
 const REQUIRED_COLS = [
-  'Código Plan Estudio', 'Plan Estudio', 'Código Gestión', 'Gestión',
-  'Turno', 'Grupo', 'Código Materia', 'Materia', 'Sigla',
+  'Código Plan Estudio', 'Plan Estudio', 'Gestión', 'Sigla',
   'Abandono', 'Reprobados', 'Aprobados', 'Total Alumnos',
 ];
 
 function makeHistoricoBuffer(rows: Record<string, unknown>[], cols?: string[]): Buffer {
   const headers = cols ?? REQUIRED_COLS;
-  const ws = XLSX.utils.json_to_sheet(
-    rows.length > 0 ? rows : [Object.fromEntries(headers.map(h => [h, null]))],
-    { header: headers }
-  );
+  // Filter row keys to only include the specified columns so missing-column tests work
+  const filteredRows = rows.map(r => Object.fromEntries(headers.map(h => [h, r[h] ?? null])));
+  const data = filteredRows.length > 0
+    ? filteredRows
+    : [Object.fromEntries(headers.map(h => [h, null]))];
+  const ws = XLSX.utils.json_to_sheet(data, { header: headers });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
   return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
@@ -27,7 +29,6 @@ function makeValidRow(overrides: Partial<Record<string, unknown>> = {}): Record<
     'Código Gestión': 'G001',
     'Gestión': '1/2024',
     'Turno': 'Mañana',
-    'Grupo': 'A',
     'Código Materia': 'M001',
     'Materia': 'Matemáticas',
     'Sigla': 'MAT101',
@@ -83,8 +84,10 @@ describe('Feature: student-growth-estimator — Importer Property Tests', () => 
           expect(result.rows).toEqual([]);
           expect(result.errores.length).toBeGreaterThan(0);
 
-          const errorText = result.errores.join(' ');
-          const mentionsMissing = missingCols.some(col => errorText.includes(col));
+          // Normalize: lowercase + remove accents for comparison
+          const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          const errorText = normalize(result.errores.join(' '));
+          const mentionsMissing = missingCols.some(col => errorText.includes(normalize(col)));
           expect(mentionsMissing).toBe(true);
         }
       ),
