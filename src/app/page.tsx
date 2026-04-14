@@ -1,18 +1,22 @@
 'use client';
+import { useState } from 'react';
 import { useAppStore } from '@/store/appStore';
 import { UploadPanel } from '@/components/UploadPanel';
 import { ConfigPanel } from '@/components/ConfigPanel';
 import { ResultsTable } from '@/components/ResultsTable';
 import { ExportButton } from '@/components/ExportButton';
+import type { FilaProyeccion } from '@/lib/types';
 
 export default function Home() {
   const { state, dispatch } = useAppStore();
   const { paso, historicoRows, mallaRows, cargando, errores } = state;
+  const [diag, setDiag] = useState<Record<string, unknown> | null>(null);
 
   async function handleCalcular() {
     if (!state.config) return;
     dispatch({ type: 'SET_CARGANDO', payload: true });
     dispatch({ type: 'SET_ERRORES', payload: [] });
+    setDiag(null);
     try {
       const res = await fetch('/api/proyeccion/calcular', {
         method: 'POST',
@@ -23,11 +27,14 @@ export default function Home() {
           config: state.config,
         }),
       });
-      const data = await res.json();
+      const data = await res.json() as { proyecciones?: FilaProyeccion[]; diag?: Record<string, unknown>; error?: string };
       if (!res.ok) {
-        dispatch({ type: 'SET_ERRORES', payload: [(data as { error: string }).error ?? 'Error al calcular'] });
+        dispatch({ type: 'SET_ERRORES', payload: [data.error ?? 'Error al calcular'] });
       } else {
-        dispatch({ type: 'SET_RESULTADOS', payload: data });
+        // Handle both old format (array) and new format ({proyecciones, diag})
+        const proyecciones = Array.isArray(data) ? data : (data.proyecciones ?? []);
+        if (data.diag) setDiag(data.diag);
+        dispatch({ type: 'SET_RESULTADOS', payload: proyecciones });
         dispatch({ type: 'SET_PASO', payload: 'resultados' });
       }
     } catch {
@@ -65,6 +72,29 @@ export default function Home() {
         <section className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
           <ConfigPanel onNext={handleCalcular} />
           {cargando && <p className="mt-2 text-slate-600 text-sm">Calculando proyecciones...</p>}
+        </section>
+      )}
+
+      {/* DIAGNOSTIC PANEL — remove after debugging */}
+      {diag && (
+        <section className="bg-amber-50 border border-amber-300 rounded-xl p-4 text-xs font-mono space-y-1">
+          <p className="font-bold text-amber-800 text-sm">🔍 Diagnóstico</p>
+          <p><strong>Histórico filas:</strong> {String(diag.historicoRows)}</p>
+          <p><strong>Malla filas:</strong> {String(diag.mallaRows)}</p>
+          <p><strong>Gestión actual:</strong> {String(diag.gestionActual)}</p>
+          <p><strong>Gestiones en histórico:</strong> {JSON.stringify(diag.gestionesEnHistorico)}</p>
+          <p><strong>planEstudio en histórico:</strong> {JSON.stringify(diag.planEstudiosEnHistorico)}</p>
+          <p><strong>carrera en malla:</strong> {JSON.stringify(diag.carrerasEnMalla)}</p>
+          <p><strong>Tasas OK / Insuficientes:</strong> {String(diag.tasasOk)} / {String(diag.tasasInsuficientes)}</p>
+          <p><strong>Proyecciones con valor &gt; 0:</strong> {String(diag.proyeccionesConValor)} / {String(diag.proyeccionesTotal)}</p>
+          <details className="mt-2">
+            <summary className="cursor-pointer text-amber-700">Ver primer registro histórico</summary>
+            <pre className="mt-1 text-xs overflow-auto">{JSON.stringify(diag.primerHistorico, null, 2)}</pre>
+          </details>
+          <details>
+            <summary className="cursor-pointer text-amber-700">Ver primer registro malla</summary>
+            <pre className="mt-1 text-xs overflow-auto">{JSON.stringify(diag.primerMalla, null, 2)}</pre>
+          </details>
         </section>
       )}
 
