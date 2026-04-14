@@ -19,6 +19,45 @@ function buildColMap(firstRow: Record<string, unknown>): Map<string, string> {
   return map;
 }
 
+/**
+ * Normaliza el formato de gestión al estándar N/AAAA.
+ * Soporta:
+ *   "1/2024", "2/2024"           → sin cambio
+ *   "1er-Sem/2024", "1er Sem/2024" → "1/2024"
+ *   "2do-Sem/2024", "2do Sem/2024" → "2/2024"
+ *   "I/2024", "II/2024"          → "1/2024", "2/2024"
+ *   "2024-1", "2024-2"           → "1/2024", "2/2024"
+ *   "2024/1", "2024/2"           → "1/2024", "2/2024"
+ */
+function normalizarGestion(raw: string): string {
+  const s = raw.trim();
+
+  // Already in correct format
+  if (/^[12]\/\d{4}$/.test(s)) return s;
+
+  // "1er-Sem/2024" or "1er Sem/2024" or "1er-sem/2024"
+  const m1 = s.match(/^1[a-z]*[-\s]*sem[a-z]*[/\-](\d{4})$/i);
+  if (m1) return `1/${m1[1]}`;
+
+  const m2 = s.match(/^2[a-z]*[-\s]*sem[a-z]*[/\-](\d{4})$/i);
+  if (m2) return `2/${m2[1]}`;
+
+  // "I/2024" or "II/2024"
+  const mRoman = s.match(/^(I{1,2})\/(\d{4})$/i);
+  if (mRoman) return `${mRoman[1].toUpperCase() === 'I' ? 1 : 2}/${mRoman[2]}`;
+
+  // "2024-1" or "2024/1"
+  const mInv = s.match(/^(\d{4})[-/]([12])$/);
+  if (mInv) return `${mInv[2]}/${mInv[1]}`;
+
+  // "2024-I" or "2024/II"
+  const mInvRoman = s.match(/^(\d{4})[-/](I{1,2})$/i);
+  if (mInvRoman) return `${mInvRoman[2].toUpperCase() === 'I' ? 1 : 2}/${mInvRoman[1]}`;
+
+  // Return as-is if no pattern matched
+  return s;
+}
+
 // Semestre en texto -> número
 const SEMESTRE_MAP: Record<string, number> = {
   'primer semestre': 1, 'primero': 1, '1': 1,
@@ -104,7 +143,7 @@ export function parseHistorico(buffer: Buffer): ImportResult<HistoricoRow> {
       codigoPlanEstudio: String(codigoPlan),
       planEstudio: String(get(raw, 'plan estudio') ?? ''),
       codigoGestion: String(get(raw, 'codigo gestion') ?? ''),
-      gestion: String(gestion),
+      gestion: normalizarGestion(String(gestion)),
       turno: String(get(raw, 'turno') ?? ''),
       grupo: String(get(raw, 'grupo') ?? ''),
       codigoMateria: String(get(raw, 'codigo materia') ?? ''),

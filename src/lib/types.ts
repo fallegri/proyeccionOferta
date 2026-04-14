@@ -37,6 +37,10 @@ export interface ConfigCalculo {
   gestionSiguiente: string;
   gestionesAtipicas: string[];
   metodo: MetodoProyeccion;
+  /** Mapeo de nombre de carrera en histórico -> nombre de carrera en malla.
+   *  Ej: { "DISEÑO GRAFICO": "Lic. En Diseño Gráfico", "Ingenieria de Sistemas": "INGESIS" }
+   */
+  carreraMap?: Record<string, string>;
 }
 
 export interface TasaMateria {
