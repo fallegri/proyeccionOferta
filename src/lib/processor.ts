@@ -30,6 +30,25 @@ function calcularGestionAnterior(gestion: string): string {
   return `1/${anio}`;
 }
 
+// Normaliza strings para comparación: minúsculas, sin tildes, sin espacios extra
+function norm(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+// Construye un mapa normalizado de planEstudio -> valor original
+// para resolver el mismatch de mayúsculas/tildes entre histórico y malla
+function buildCarreraMap(historico: HistoricoRow[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const r of historico) {
+    map.set(norm(r.planEstudio), r.planEstudio);
+  }
+  return map;
+}
+
 export function calcularTasas(
   historico: HistoricoRow[],
   config: ConfigCalculo
@@ -37,9 +56,10 @@ export function calcularTasas(
   const { gestionesAtipicas, metodo } = config;
   const atipicasSet = new Set(gestionesAtipicas);
 
+  // Group by (sigla_norm, carrera_norm) — case/accent insensitive
   const groups = new Map<string, HistoricoRow[]>();
   for (const row of historico) {
-    const key = `${row.sigla}|||${row.planEstudio}`;
+    const key = `${norm(row.sigla)}|||${norm(row.planEstudio)}`;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(row);
   }
@@ -47,7 +67,9 @@ export function calcularTasas(
   const result: TasaMateria[] = [];
 
   for (const [key, rows] of groups) {
-    const [sigla, carrera] = key.split('|||');
+    // Use original values from first row for output
+    const sigla = rows[0].sigla;
+    const carrera = rows[0].planEstudio;
     const filtered = rows.filter(r => !atipicasSet.has(r.gestion));
 
     if (filtered.length < 2) {
@@ -105,10 +127,18 @@ export function calcularProyecciones(
   const atipicasSet = new Set(gestionesAtipicas);
   const gestionAnterior = calcularGestionAnterior(gestionActual);
 
+  // Build normalized lookup for tasas
+  const tasaMap = new Map<string, TasaMateria>();
+  for (const t of tasas) {
+    tasaMap.set(`${norm(t.sigla)}|||${norm(t.carrera)}`, t);
+  }
+
   const result: FilaProyeccion[] = [];
 
   for (const mallaRow of malla) {
     const { carrera, sigla, nombreAsignatura, requisito, requiereIngresoManual } = mallaRow;
+    const carreraNorm = norm(carrera);
+    const siglaNorm = norm(sigla);
 
     // Case 1: requires manual entry
     if (requiereIngresoManual) {
@@ -124,8 +154,8 @@ export function calcularProyecciones(
       continue;
     }
 
-    // Find tasa for this (sigla, carrera)
-    const tasa = tasas.find(t => t.sigla === sigla && t.carrera === carrera);
+    // Find tasa — normalized match
+    const tasa = tasaMap.get(`${siglaNorm}|||${carreraNorm}`);
 
     // Case 2: datos_insuficientes
     if (tasa?.estado === 'datos_insuficientes') {
@@ -144,7 +174,7 @@ export function calcularProyecciones(
     // Case 3: ADMISIÓN (no prerequisite)
     if (requisito === 'ADMISIÓN') {
       const rowsForMateria = historico.filter(
-        r => r.sigla === sigla && r.planEstudio === carrera && !atipicasSet.has(r.gestion)
+        r => norm(r.sigla) === siglaNorm && norm(r.planEstudio) === carreraNorm && !atipicasSet.has(r.gestion)
       );
       const byGestion = new Map<string, number>();
       for (const r of rowsForMateria) {
@@ -155,7 +185,7 @@ export function calcularProyecciones(
         ? sortedGestiones.reduce((sum, g) => sum + byGestion.get(g)!, 0) / sortedGestiones.length
         : 0;
 
-      const rowsAnt = historico.filter(r => r.sigla === sigla && r.planEstudio === carrera && r.gestion === gestionAnterior);
+      const rowsAnt = historico.filter(r => norm(r.sigla) === siglaNorm && norm(r.planEstudio) === carreraNorm && r.gestion === gestionAnterior);
       const inscritosAnt = rowsAnt.length > 0 ? rowsAnt.reduce((s, r) => s + r.totalAlumnos, 0) : null;
       const reprobadosAnt = rowsAnt.length > 0 ? rowsAnt.reduce((s, r) => s + r.reprobados, 0) : null;
       const abandonosAnt = rowsAnt.length > 0 ? rowsAnt.reduce((s, r) => s + r.abandono, 0) : null;
@@ -177,13 +207,14 @@ export function calcularProyecciones(
     }
 
     // Case 4: has prerequisite
-    const tasaPrereq = tasas.find(t => t.sigla === requisito && t.carrera === carrera);
+    const requisitoNorm = norm(requisito);
+    const tasaPrereq = tasaMap.get(`${requisitoNorm}|||${carreraNorm}`);
     const tasaPromocionPrereq = tasaPrereq?.tasaPromocion ?? 0;
     const tasaReprobacionPrereq = tasaPrereq?.tasaReprobacion ?? 0;
     const tasaAbandonoPrereq = tasaPrereq?.tasaAbandono ?? 0;
 
     const rowsPrereqActual = historico.filter(
-      r => r.sigla === requisito && r.planEstudio === carrera && r.gestion === gestionActual
+      r => norm(r.sigla) === requisitoNorm && norm(r.planEstudio) === carreraNorm && r.gestion === gestionActual
     );
     const inscritosPrereq = rowsPrereqActual.reduce((s, r) => s + r.totalAlumnos, 0);
 
@@ -191,7 +222,7 @@ export function calcularProyecciones(
     const proyeccionReprobadosRequisito = Math.floor(inscritosPrereq * tasaReprobacionPrereq);
     const proyeccionAbandonosRequisito = Math.floor(inscritosPrereq * tasaAbandonoPrereq);
 
-    const rowsAnt = historico.filter(r => r.sigla === sigla && r.planEstudio === carrera && r.gestion === gestionAnterior);
+    const rowsAnt = historico.filter(r => norm(r.sigla) === siglaNorm && norm(r.planEstudio) === carreraNorm && r.gestion === gestionAnterior);
     const inscritosAnt = rowsAnt.length > 0 ? rowsAnt.reduce((s, r) => s + r.totalAlumnos, 0) : null;
     const reprobadosAnt = rowsAnt.reduce((s, r) => s + r.reprobados, 0);
     const abandonosAnt = rowsAnt.reduce((s, r) => s + r.abandono, 0);
