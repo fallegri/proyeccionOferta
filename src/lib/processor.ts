@@ -155,6 +155,12 @@ export function calcularProyecciones(
     tasaMap.set(`${norm(t.sigla)}|||${norm(t.carrera)}`, t);
   }
 
+  // Build lookup: (sigla_norm, carrera_norm) -> MallaRow for nombre and semestre
+  const mallaMap = new Map<string, MallaRow>();
+  for (const m of malla) {
+    mallaMap.set(`${norm(m.sigla)}|||${norm(m.carrera)}`, m);
+  }
+
   // Pre-resolve historico rows with their mapped carrera for fast lookup
   const historicoMapped = historico.map(r => ({
     ...r,
@@ -172,7 +178,9 @@ export function calcularProyecciones(
     if (requiereIngresoManual) {
       result.push({
         carrera, nombreAsignatura, sigla, requisito,
+        nombreRequisito: null,
         codigoRequisito: null, grupo: '',
+        semestre: mallaRow.semestre,
         totalInscritosRequisito: null, proyeccionReprobadosRequisito: null,
         proyeccionAbandonosRequisito: null, proyeccionAlumnosPromueven: null,
         inscritosAsignaturaGestionAnterior: null, reprobadosAsignaturaGestionAnterior: null,
@@ -189,7 +197,9 @@ export function calcularProyecciones(
     if (tasa?.estado === 'datos_insuficientes') {
       result.push({
         carrera, nombreAsignatura, sigla, requisito,
+        nombreRequisito: null,
         codigoRequisito: null, grupo: '',
+        semestre: mallaRow.semestre,
         totalInscritosRequisito: null, proyeccionReprobadosRequisito: null,
         proyeccionAbandonosRequisito: null, proyeccionAlumnosPromueven: null,
         inscritosAsignaturaGestionAnterior: null, reprobadosAsignaturaGestionAnterior: null,
@@ -221,7 +231,9 @@ export function calcularProyecciones(
 
       result.push({
         carrera, nombreAsignatura, sigla, requisito,
+        nombreRequisito: 'ADMISIÓN',
         codigoRequisito: null, grupo: '',
+        semestre: mallaRow.semestre,
         totalInscritosRequisito: null, proyeccionReprobadosRequisito: null,
         proyeccionAbandonosRequisito: null, proyeccionAlumnosPromueven: null,
         inscritosAsignaturaGestionAnterior: inscritosAnt,
@@ -241,6 +253,10 @@ export function calcularProyecciones(
     const tasaReprobacionPrereq = tasaPrereq?.tasaReprobacion ?? 0;
     const tasaAbandonoPrereq = tasaPrereq?.tasaAbandono ?? 0;
 
+    // Resolve nombre of prerequisite from malla
+    const mallaPrereq = mallaMap.get(`${requisitoNorm}|||${carreraNorm}`);
+    const nombreRequisito = mallaPrereq?.nombreAsignatura ?? requisito;
+
     const rowsPrereqActual = historicoMapped.filter(
       r => norm(r.sigla) === requisitoNorm && norm(r.carreraMapped) === carreraNorm && r.gestion === gestionActual
     );
@@ -259,7 +275,9 @@ export function calcularProyecciones(
 
     result.push({
       carrera, nombreAsignatura, sigla, requisito,
+      nombreRequisito,
       codigoRequisito: null, grupo: '',
+      semestre: mallaRow.semestre,
       totalInscritosRequisito: inscritosPrereq,
       proyeccionReprobadosRequisito,
       proyeccionAbandonosRequisito,

@@ -4,9 +4,11 @@ import * as XLSX from 'xlsx';
 import { generarExcel } from '../exporter';
 import type { FilaProyeccion } from '../types';
 
-// Updated to match new uppercase column names (matching Esperado.xlsx format)
+// Updated to match new column structure with nombreRequisito and semestre
 const REQUIRED_HEADERS = [
-  'CARRERA', 'NOMBRE ASIGNATURA', 'CODIGO', 'REQUISITO', 'CODIGO REQUISITO',
+  'CARRERA', 'NOMBRE ASIGNATURA', 'CODIGO',
+  'Materia REQUISITO', 'CODIGO REQUISITO',
+  'SEMESTRE NOMBRE ASIGNATURA EN LA MALLA',
   'TOTAL INSCRITOS EN EL REQUISITO', 'PROYECCIÓN REPROBADOS REQUISITO',
   'PROYECCIÓN ABANDONOS EN EL REQUISITO', 'PROYECCIÓN ALUMNOS QUE PROMUEVEN',
   'ALUMNOS INSCRITOS EN LA ASIGNATURA EN GESTIÓN ANTERIOR',
@@ -19,7 +21,8 @@ const REQUIRED_HEADERS = [
 function makeFila(overrides: Partial<FilaProyeccion> = {}): FilaProyeccion {
   return {
     carrera: 'Sistemas', nombreAsignatura: 'Matemáticas I', sigla: 'MAT101',
-    requisito: 'ADMISIÓN', codigoRequisito: null, grupo: 'A',
+    requisito: 'ADMISIÓN', nombreRequisito: 'ADMISIÓN', codigoRequisito: null,
+    semestre: 1, grupo: 'A',
     totalInscritosRequisito: null, proyeccionReprobadosRequisito: null,
     proyeccionAbandonosRequisito: null, proyeccionAlumnosPromueven: null,
     inscritosAsignaturaGestionAnterior: 50, reprobadosAsignaturaGestionAnterior: 10,

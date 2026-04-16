@@ -39,8 +39,9 @@ export function ResultsTable() {
               <th className="border-b border-slate-200 px-3 py-2 text-left font-semibold">Carrera</th>
               <th className="border-b border-slate-200 px-3 py-2 text-left font-semibold">Nombre Asignatura</th>
               <th className="border-b border-slate-200 px-3 py-2 font-semibold">Código</th>
-              <th className="border-b border-slate-200 px-3 py-2 font-semibold">Requisito</th>
+              <th className="border-b border-slate-200 px-3 py-2 font-semibold">Materia Requisito</th>
               <th className="border-b border-slate-200 px-3 py-2 font-semibold">Cód. Requisito</th>
+              <th className="border-b border-slate-200 px-3 py-2 font-semibold">Semestre</th>
               <th className="border-b border-slate-200 px-3 py-2 font-semibold">Inscritos Req.</th>
               <th className="border-b border-slate-200 px-3 py-2 font-semibold">Proy. Reprobados</th>
               <th className="border-b border-slate-200 px-3 py-2 font-semibold">Proy. Abandonos</th>
@@ -62,8 +63,9 @@ export function ResultsTable() {
                 <td className="border-b border-slate-100 px-3 py-2">{r.carrera}</td>
                 <td className="border-b border-slate-100 px-3 py-2">{r.nombreAsignatura}</td>
                 <td className="border-b border-slate-100 px-3 py-2 text-center font-mono text-xs">{r.sigla}</td>
-                <td className="border-b border-slate-100 px-3 py-2 text-center font-mono text-xs">{r.requisito}</td>
+                <td className="border-b border-slate-100 px-3 py-2 text-xs">{r.nombreRequisito ?? r.requisito}</td>
                 <td className="border-b border-slate-100 px-3 py-2 text-center font-mono text-xs">{r.codigoRequisito ?? r.requisito}</td>
+                <td className="border-b border-slate-100 px-3 py-2 text-center">{r.semestre ?? '—'}</td>
                 <td className="border-b border-slate-100 px-3 py-2 text-center">{r.totalInscritosRequisito ?? '—'}</td>
                 <td className="border-b border-slate-100 px-3 py-2 text-center">{r.proyeccionReprobadosRequisito ?? '—'}</td>
                 <td className="border-b border-slate-100 px-3 py-2 text-center">{r.proyeccionAbandonosRequisito ?? '—'}</td>

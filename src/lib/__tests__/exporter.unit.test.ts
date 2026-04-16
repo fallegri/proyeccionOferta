@@ -6,7 +6,8 @@ import type { FilaProyeccion } from '../types';
 function makeFila(overrides: Partial<FilaProyeccion> = {}): FilaProyeccion {
   return {
     carrera: 'Sistemas', nombreAsignatura: 'Matemáticas I', sigla: 'MAT101',
-    requisito: 'ADMISIÓN', codigoRequisito: null, grupo: 'A',
+    requisito: 'ADMISIÓN', nombreRequisito: 'ADMISIÓN', codigoRequisito: null,
+    semestre: 1, grupo: 'A',
     totalInscritosRequisito: null, proyeccionReprobadosRequisito: null,
     proyeccionAbandonosRequisito: null, proyeccionAlumnosPromueven: null,
     inscritosAsignaturaGestionAnterior: 50, reprobadosAsignaturaGestionAnterior: 10,

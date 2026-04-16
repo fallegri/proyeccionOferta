@@ -1,13 +1,14 @@
 import * as XLSX from 'xlsx';
 import type { FilaProyeccion } from './types';
 
-// Columnas en el orden exacto del formato esperado — sin columna Grupo
+// Columnas en el orden exacto del formato esperado
 const COLUMNS = [
   { header: 'CARRERA',                                                          key: 'carrera' },
   { header: 'NOMBRE ASIGNATURA',                                                key: 'nombreAsignatura' },
   { header: 'CODIGO',                                                           key: 'sigla' },
-  { header: 'REQUISITO',                                                        key: 'requisito' },
+  { header: 'Materia REQUISITO',                                                key: 'nombreRequisito' },
   { header: 'CODIGO REQUISITO',                                                 key: 'codigoRequisito' },
+  { header: 'SEMESTRE NOMBRE ASIGNATURA EN LA MALLA',                           key: 'semestre' },
   { header: 'TOTAL INSCRITOS EN EL REQUISITO',                                  key: 'totalInscritosRequisito' },
   { header: 'PROYECCIÓN REPROBADOS REQUISITO',                                  key: 'proyeccionReprobadosRequisito' },
   { header: 'PROYECCIÓN ABANDONOS EN EL REQUISITO',                             key: 'proyeccionAbandonosRequisito' },
@@ -37,7 +38,7 @@ export function generarExcel(
       const row: Record<string, unknown> = {};
       for (const col of COLUMNS) {
         if (col.key === 'codigoRequisito') {
-          // CODIGO REQUISITO = same as REQUISITO when null (shows the prereq sigla or ADMISIÓN)
+          // CODIGO REQUISITO = sigla del prerrequisito (o ADMISIÓN)
           row[col.header] = fila.codigoRequisito ?? fila.requisito ?? null;
         } else {
           row[col.header] = (fila[col.key] as unknown) ?? null;

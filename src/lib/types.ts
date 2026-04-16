@@ -56,8 +56,13 @@ export interface FilaProyeccion {
   carrera: string;
   nombreAsignatura: string;
   sigla: string;
+  /** Sigla del prerrequisito o "ADMISIÓN" */
   requisito: string;
+  /** Nombre completo de la materia prerrequisito (viene de la malla) */
+  nombreRequisito: string | null;
   codigoRequisito: string | null;
+  /** Semestre de la materia a programar (viene de la malla) */
+  semestre: number | null;
   grupo: string;
   totalInscritosRequisito: number | null;
   proyeccionReprobadosRequisito: number | null;
