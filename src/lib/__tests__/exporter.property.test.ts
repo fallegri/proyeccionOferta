@@ -4,15 +4,16 @@ import * as XLSX from 'xlsx';
 import { generarExcel } from '../exporter';
 import type { FilaProyeccion } from '../types';
 
+// Updated to match new uppercase column names (matching Esperado.xlsx format)
 const REQUIRED_HEADERS = [
-  'Carrera', 'Nombre Asignatura', 'Código', 'Requisito', 'Código Requisito', 'Grupo',
-  'Total Inscritos en el Requisito', 'Proyección Reprobados Requisito',
-  'Proyección Abandonos en el Requisito', 'Proyección Alumnos que Promueven',
-  'Alumnos Inscritos en la Asignatura en Gestión Anterior',
-  'Reprobados en la Asignatura en la Gestión Anterior',
-  'Abandonos en la Asignatura en la Gestión Anterior',
-  'Total Repitentes en la Asignatura de la Gestión Anterior',
-  'Proyección de Inscritos',
+  'CARRERA', 'NOMBRE ASIGNATURA', 'CODIGO', 'REQUISITO', 'CODIGO REQUISITO',
+  'TOTAL INSCRITOS EN EL REQUISITO', 'PROYECCIÓN REPROBADOS REQUISITO',
+  'PROYECCIÓN ABANDONOS EN EL REQUISITO', 'PROYECCIÓN ALUMNOS QUE PROMUEVEN',
+  'ALUMNOS INSCRITOS EN LA ASIGNATURA EN GESTIÓN ANTERIOR',
+  'REPROBADOS EN LA ASIGNATURA EN LA GESTIÓN ANTERIOR',
+  'ABANDONOS EN LA ASIGNATURA EN LA GESTIÓN ANTERIOR',
+  'TOTAL REPITENTES EN LA ASIGNATURA DE LA GESTIÓN ANTERIOR',
+  'PROYECCIÓN DE INSCRITOS',
 ];
 
 function makeFila(overrides: Partial<FilaProyeccion> = {}): FilaProyeccion {
@@ -40,11 +41,10 @@ function getSheetHeaders(ws: XLSX.WorkSheet): string[] {
 
 describe('Feature: student-growth-estimator — Exporter Property Tests', () => {
   it('Feature: student-growth-estimator, Property 18: Filtrado de resultados por carrera', () => {
-    // Validates: Requerimiento 6.2
     fc.assert(
       fc.property(
         fc.array(
-          fc.constantFrom('Sistemas', 'Civil', 'Industrial', 'Electrónica'),
+          fc.constantFrom('Sistemas', 'Civil', 'Industrial', 'Electronica'),
           { minLength: 1, maxLength: 20 }
         ),
         (carreras) => {
@@ -56,7 +56,7 @@ describe('Feature: student-growth-estimator — Exporter Property Tests', () => 
             const ws = wb.Sheets[sheetName];
             const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
             for (const row of rows) {
-              expect(String(row['Carrera']).slice(0, 31)).toBe(sheetName);
+              expect(String(row['CARRERA']).slice(0, 31)).toBe(sheetName);
             }
           }
         }
@@ -66,7 +66,6 @@ describe('Feature: student-growth-estimator — Exporter Property Tests', () => 
   });
 
   it('Feature: student-growth-estimator, Property 19: Excel contiene todas las columnas requeridas', () => {
-    // Validates: Requerimiento 7.1
     fc.assert(
       fc.property(
         fc.array(fc.constantFrom('Sistemas', 'Civil'), { minLength: 1, maxLength: 10 }),
@@ -89,19 +88,16 @@ describe('Feature: student-growth-estimator — Exporter Property Tests', () => 
   });
 
   it('Feature: student-growth-estimator, Property 20: Excel incluye valores editados manualmente', () => {
-    // Validates: Requerimiento 7.2
     fc.assert(
       fc.property(
         fc.integer({ min: 1, max: 200 }),
         (editedValue) => {
-          const filas = [
-            makeFila({ proyeccionInscritos: editedValue, editadoManualmente: true }),
-          ];
+          const filas = [makeFila({ proyeccionInscritos: editedValue, editadoManualmente: true })];
           const { buffer } = generarExcel(filas, '2/2024');
           const wb = XLSX.read(buffer, { type: 'buffer' });
           const ws = wb.Sheets[wb.SheetNames[0]];
           const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
-          expect(rows[0]['Proyección de Inscritos']).toBe(editedValue);
+          expect(rows[0]['PROYECCIÓN DE INSCRITOS']).toBe(editedValue);
         }
       ),
       { numRuns: 100 }
@@ -109,11 +105,10 @@ describe('Feature: student-growth-estimator — Exporter Property Tests', () => 
   });
 
   it('Feature: student-growth-estimator, Property 21: Excel tiene una hoja por carrera', () => {
-    // Validates: Requerimiento 7.3
     fc.assert(
       fc.property(
         fc.array(
-          fc.constantFrom('Sistemas', 'Civil', 'Industrial', 'Electrónica', 'Mecánica'),
+          fc.constantFrom('Sistemas', 'Civil', 'Industrial', 'Electronica', 'Mecanica'),
           { minLength: 1, maxLength: 5 }
         ),
         (carreras) => {
@@ -129,7 +124,6 @@ describe('Feature: student-growth-estimator — Exporter Property Tests', () => 
   });
 
   it('Feature: student-growth-estimator, Property 22: Nombre del archivo sigue el formato correcto', () => {
-    // Validates: Requerimiento 7.5
     fc.assert(
       fc.property(
         fc.oneof(

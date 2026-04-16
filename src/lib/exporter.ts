@@ -1,22 +1,22 @@
 import * as XLSX from 'xlsx';
 import type { FilaProyeccion } from './types';
 
+// Columnas en el orden exacto del formato esperado — sin columna Grupo
 const COLUMNS = [
-  { header: 'Carrera', key: 'carrera' },
-  { header: 'Nombre Asignatura', key: 'nombreAsignatura' },
-  { header: 'Código', key: 'sigla' },
-  { header: 'Requisito', key: 'requisito' },
-  { header: 'Código Requisito', key: 'codigoRequisito' },
-  { header: 'Grupo', key: 'grupo' },
-  { header: 'Total Inscritos en el Requisito', key: 'totalInscritosRequisito' },
-  { header: 'Proyección Reprobados Requisito', key: 'proyeccionReprobadosRequisito' },
-  { header: 'Proyección Abandonos en el Requisito', key: 'proyeccionAbandonosRequisito' },
-  { header: 'Proyección Alumnos que Promueven', key: 'proyeccionAlumnosPromueven' },
-  { header: 'Alumnos Inscritos en la Asignatura en Gestión Anterior', key: 'inscritosAsignaturaGestionAnterior' },
-  { header: 'Reprobados en la Asignatura en la Gestión Anterior', key: 'reprobadosAsignaturaGestionAnterior' },
-  { header: 'Abandonos en la Asignatura en la Gestión Anterior', key: 'abandonosAsignaturaGestionAnterior' },
-  { header: 'Total Repitentes en la Asignatura de la Gestión Anterior', key: 'totalRepitentesGestionAnterior' },
-  { header: 'Proyección de Inscritos', key: 'proyeccionInscritos' },
+  { header: 'CARRERA',                                                          key: 'carrera' },
+  { header: 'NOMBRE ASIGNATURA',                                                key: 'nombreAsignatura' },
+  { header: 'CODIGO',                                                           key: 'sigla' },
+  { header: 'REQUISITO',                                                        key: 'requisito' },
+  { header: 'CODIGO REQUISITO',                                                 key: 'codigoRequisito' },
+  { header: 'TOTAL INSCRITOS EN EL REQUISITO',                                  key: 'totalInscritosRequisito' },
+  { header: 'PROYECCIÓN REPROBADOS REQUISITO',                                  key: 'proyeccionReprobadosRequisito' },
+  { header: 'PROYECCIÓN ABANDONOS EN EL REQUISITO',                             key: 'proyeccionAbandonosRequisito' },
+  { header: 'PROYECCIÓN ALUMNOS QUE PROMUEVEN',                                 key: 'proyeccionAlumnosPromueven' },
+  { header: 'ALUMNOS INSCRITOS EN LA ASIGNATURA EN GESTIÓN ANTERIOR',           key: 'inscritosAsignaturaGestionAnterior' },
+  { header: 'REPROBADOS EN LA ASIGNATURA EN LA GESTIÓN ANTERIOR',               key: 'reprobadosAsignaturaGestionAnterior' },
+  { header: 'ABANDONOS EN LA ASIGNATURA EN LA GESTIÓN ANTERIOR',                key: 'abandonosAsignaturaGestionAnterior' },
+  { header: 'TOTAL REPITENTES EN LA ASIGNATURA DE LA GESTIÓN ANTERIOR',         key: 'totalRepitentesGestionAnterior' },
+  { header: 'PROYECCIÓN DE INSCRITOS',                                          key: 'proyeccionInscritos' },
 ] as const;
 
 export function generarExcel(
@@ -33,9 +33,18 @@ export function generarExcel(
   }
 
   for (const [carrera, rows] of byCarrera) {
-    const data = rows.map(fila =>
-      Object.fromEntries(COLUMNS.map(col => [col.header, fila[col.key] ?? null]))
-    );
+    const data = rows.map(fila => {
+      const row: Record<string, unknown> = {};
+      for (const col of COLUMNS) {
+        if (col.key === 'codigoRequisito') {
+          // CODIGO REQUISITO = same as REQUISITO when null (shows the prereq sigla or ADMISIÓN)
+          row[col.header] = fila.codigoRequisito ?? fila.requisito ?? null;
+        } else {
+          row[col.header] = (fila[col.key] as unknown) ?? null;
+        }
+      }
+      return row;
+    });
     const ws = XLSX.utils.json_to_sheet(data, { header: COLUMNS.map(c => c.header) });
     const sheetName = carrera.slice(0, 31);
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
