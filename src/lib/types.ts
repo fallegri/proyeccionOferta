@@ -23,6 +23,7 @@ export interface OfertaActualRow {
   planEstudio: string;
   codigoGestion: string;
   gestion: string;
+  nsem: number;           // semestre del grupo según el archivo de oferta (columna Nsem)
   turno: Turno;           // normalizado: Mañana | Tarde | Noche
   grupo: string;          // grupo original limpio, ej: "1AM", "2AT"
   codigoMateria: string;

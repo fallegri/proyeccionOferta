@@ -351,12 +351,15 @@ export function parseOfertaActual(buffer: Buffer): ImportResult<OfertaActualRow>
 
     const gestionRaw = get(raw, 'gestion');
     const gestion = gestionRaw ? normalizarGestion(String(gestionRaw)) : '';
+    const nsemRaw = get(raw, 'nsem');
+    const nsem = nsemRaw != null ? Number(nsemRaw) : 0;
 
     rows.push({
       codigoPlanEstudio: String(codigoPlan),
       planEstudio: String(get(raw, 'plan estudio') ?? ''),
       codigoGestion: String(get(raw, 'codigo gestion') ?? ''),
       gestion,
+      nsem,
       turno,
       grupo,
       codigoMateria: String(get(raw, 'codigo materia') ?? ''),

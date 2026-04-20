@@ -247,14 +247,13 @@ export function calcularProyecciones(
    */
   const semestresProyectadosPorCarrera = new Map<string, Set<number>>();
   if (ofertaActual.length > 0) {
-    // Collect semestres present in oferta per carrera (using malla to get semestre number)
+    // Collect semestres present in oferta per carrera — use nsem directly from oferta file
     const semestresActualesPorCarrera = new Map<string, Set<number>>();
     for (const o of ofertaActual) {
       const carreraResolved = resolveCarrera(o.planEstudio);
       const carreraNormKey = norm(carreraResolved);
-      const mallaEntry = mallaMap.get(`${norm(o.sigla)}|||${carreraNormKey}`);
-      if (!mallaEntry) continue;
-      const sem = mallaEntry.semestre;
+      const sem = o.nsem;
+      if (!sem || sem <= 0) continue;
       if (!semestresActualesPorCarrera.has(carreraNormKey)) {
         semestresActualesPorCarrera.set(carreraNormKey, new Set());
       }
