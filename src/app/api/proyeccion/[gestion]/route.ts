@@ -21,6 +21,7 @@ export async function GET(
       nombreRequisito: r.nombreRequisito ?? r.requisito ?? 'ADMISIÓN',
       codigoRequisito: r.codigoRequisito,
       semestre: r.semestre,
+      turno: (r.turno as import('@/lib/types').Turno | null) ?? null,
       grupo: r.grupo ?? '',
       totalInscritosRequisito: r.totalInscritosRequisito,
       proyeccionReprobadosRequisito: r.proyReprobadosRequisito,

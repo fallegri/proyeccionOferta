@@ -21,6 +21,7 @@ export const proyecciones = pgTable('proyecciones', {
   nombreRequisito: text('nombre_requisito'),
   codigoRequisito: text('codigo_requisito'),
   semestre: integer('semestre'),
+  turno: text('turno'),
   grupo: text('grupo'),
   totalInscritosRequisito: integer('total_inscritos_requisito'),
   proyReprobadosRequisito: integer('proy_reprobados_requisito'),

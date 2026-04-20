@@ -19,6 +19,7 @@ export async function POST(request: Request) {
         nombreRequisito: fila.nombreRequisito,
         codigoRequisito: fila.codigoRequisito,
         semestre: fila.semestre,
+        turno: fila.turno,
         grupo: fila.grupo,
         totalInscritosRequisito: fila.totalInscritosRequisito,
         proyReprobadosRequisito: fila.proyeccionReprobadosRequisito,
