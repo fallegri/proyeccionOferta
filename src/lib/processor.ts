@@ -339,11 +339,24 @@ export function calcularProyecciones(
       const mallaPrereq = mallaMap.get(`${requisitoNorm}|||${carreraNorm}`);
       const nombreRequisito = mallaPrereq?.nombreAsignatura ?? requisito;
 
-      // Use oferta inscritos for this turno if available, else fall back to historico
+      // Inscritos del prerrequisito en la gestión actual:
+      // 1. Si hay oferta y el turno es conocido → usar ese turno específico de la oferta
+      // 2. Si hay oferta pero el turno es null → sumar todos los turnos del prerrequisito en la oferta
+      // 3. Si no hay oferta → usar el histórico de la gestión actual
       let inscritosPrereq: number;
-      if (turno && ofertaMap.has(`${requisitoNorm}|||${carreraNorm}`)) {
-        inscritosPrereq = ofertaMap.get(`${requisitoNorm}|||${carreraNorm}`)!.get(turno) ?? 0;
+      const prereqOfertaKey = `${requisitoNorm}|||${carreraNorm}`;
+      const prereqOfertaTurnos = ofertaMap.get(prereqOfertaKey);
+
+      if (prereqOfertaTurnos && prereqOfertaTurnos.size > 0) {
+        if (turno) {
+          // Specific turno: use that turno's inscritos
+          inscritosPrereq = prereqOfertaTurnos.get(turno) ?? 0;
+        } else {
+          // No turno filter: sum all turnos of the prerequisite in oferta
+          inscritosPrereq = [...prereqOfertaTurnos.values()].reduce((s, v) => s + v, 0);
+        }
       } else {
+        // Fallback: use historico for gestionActual
         inscritosPrereq = historicoMapped
           .filter(r => norm(r.sigla) === requisitoNorm && norm(r.carreraMapped) === carreraNorm && r.gestion === gestionActual)
           .reduce((s, r) => s + r.totalAlumnos, 0);

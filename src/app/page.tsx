@@ -4,6 +4,7 @@ import { UploadPanel } from '@/components/UploadPanel';
 import { ConfigPanel } from '@/components/ConfigPanel';
 import { ResultsTable } from '@/components/ResultsTable';
 import { ExportButton } from '@/components/ExportButton';
+import type { FilaProyeccion } from '@/lib/types';
 
 export default function Home() {
   const { state, dispatch } = useAppStore();
@@ -28,17 +29,7 @@ export default function Home() {
       if (!res.ok) {
         dispatch({ type: 'SET_ERRORES', payload: [(data as { error: string }).error ?? 'Error al calcular'] });
       } else {
-        const payload = data as { proyecciones?: unknown[]; _diag?: Record<string, unknown> } | unknown[];
-        const proyecciones = Array.isArray(payload) ? payload : ((payload as { proyecciones?: unknown[] }).proyecciones ?? []);
-        const diag = Array.isArray(payload) ? null : (payload as { _diag?: Record<string, unknown> })._diag;
-        if (diag) {
-          console.log('[DIAG semestres]', JSON.stringify(diag, null, 2));
-          // Show in UI temporarily
-          dispatch({ type: 'SET_ERRORES', payload: [
-            `DIAG: ofertaRows=${diag.ofertaRows} | nsemEnOferta=${JSON.stringify(diag.nsemEnOferta)} | esperados=${JSON.stringify(diag.semestresProyectadosEsperados)} | enProyeccion=${JSON.stringify(diag.semestresEnProyeccion)} | primerOferta.nsem=${(diag.primerOferta as Record<string,unknown>)?.nsem}`
-          ]});
-        }
-        dispatch({ type: 'SET_RESULTADOS', payload: proyecciones as import('@/lib/types').FilaProyeccion[] });
+        dispatch({ type: 'SET_RESULTADOS', payload: Array.isArray(data) ? data as FilaProyeccion[] : [] });
         dispatch({ type: 'SET_PASO', payload: 'resultados' });
       }
     } catch {
@@ -58,7 +49,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Step 1: Upload */}
       <section className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
         <UploadPanel />
         {paso === 'carga' && historicoRows.length > 0 && mallaRows.length > 0 && (
@@ -71,7 +61,6 @@ export default function Home() {
         )}
       </section>
 
-      {/* Step 2: Config */}
       {(paso === 'config' || paso === 'resultados') && (
         <section className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
           <ConfigPanel onNext={handleCalcular} />
@@ -79,7 +68,6 @@ export default function Home() {
         </section>
       )}
 
-      {/* Step 3: Results */}
       {paso === 'resultados' && (
         <section className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
           <ResultsTable />

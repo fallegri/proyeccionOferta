@@ -26,24 +26,7 @@ export async function POST(request: Request) {
       body.config,
       body.ofertaActual ?? []
     );
-
-    // Temporary diagnostics — remove after debugging
-    const oferta = body.ofertaActual ?? [];
-    const primerOferta = oferta[0];
-    const nsemValues = [...new Set(oferta.map(o => o.nsem))].sort((a, b) => a - b);
-    const semestresProyectados = [...new Set(nsemValues.map(s => s + 1))].sort((a, b) => a - b);
-    const semestresEnProyeccion = [...new Set(proyecciones.map(p => p.semestre))].sort((a, b) => (a ?? 0) - (b ?? 0));
-
-    return Response.json({
-      proyecciones,
-      _diag: {
-        ofertaRows: oferta.length,
-        primerOferta,
-        nsemEnOferta: nsemValues,
-        semestresProyectadosEsperados: semestresProyectados,
-        semestresEnProyeccion,
-      }
-    });
+    return Response.json(proyecciones);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Error desconocido';
     return Response.json({ error: msg }, { status: 500 });
