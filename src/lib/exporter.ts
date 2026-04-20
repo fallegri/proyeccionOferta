@@ -9,6 +9,7 @@ const COLUMNS = [
   { header: 'Materia REQUISITO',                                                key: 'nombreRequisito' },
   { header: 'CODIGO REQUISITO',                                                 key: 'codigoRequisito' },
   { header: 'SEMESTRE NOMBRE ASIGNATURA EN LA MALLA',                           key: 'semestre' },
+  { header: 'TURNO',                                                            key: 'turno' },
   { header: 'TOTAL INSCRITOS EN EL REQUISITO',                                  key: 'totalInscritosRequisito' },
   { header: 'PROYECCIÓN REPROBADOS REQUISITO',                                  key: 'proyeccionReprobadosRequisito' },
   { header: 'PROYECCIÓN ABANDONOS EN EL REQUISITO',                             key: 'proyeccionAbandonosRequisito' },

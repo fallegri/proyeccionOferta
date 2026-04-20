@@ -1,16 +1,21 @@
 'use client';
 import { useState, useRef } from 'react';
 import { useAppStore } from '@/store/appStore';
-import type { ImportResult, HistoricoRow, MallaRow } from '@/lib/types';
+import type { ImportResult, HistoricoRow, MallaRow, OfertaActualRow } from '@/lib/types';
 
 export function UploadPanel() {
-  const { dispatch } = useAppStore();
+  const { state, dispatch } = useAppStore();
+  const { historicoRows, mallaRows, ofertaActualRows } = state;
+
   const [historicoStatus, setHistoricoStatus] = useState<{ resumen?: string; error?: string } | null>(null);
   const [mallaStatus, setMallaStatus] = useState<{ resumen?: string; error?: string } | null>(null);
+  const [ofertaStatus, setOfertaStatus] = useState<{ resumen?: string; error?: string } | null>(null);
   const [loadingHistorico, setLoadingHistorico] = useState(false);
   const [loadingMalla, setLoadingMalla] = useState(false);
+  const [loadingOferta, setLoadingOferta] = useState(false);
   const historicoRef = useRef<HTMLInputElement>(null);
   const mallaRef = useRef<HTMLInputElement>(null);
+  const ofertaRef = useRef<HTMLInputElement>(null);
 
   async function handleHistorico(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -58,14 +63,39 @@ export function UploadPanel() {
     }
   }
 
+  async function handleOferta(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLoadingOferta(true);
+    setOfertaStatus(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload/oferta', { method: 'POST', body: fd });
+      const data = await res.json() as ImportResult<OfertaActualRow> & { error?: string };
+      if (!res.ok) {
+        setOfertaStatus({ error: data.error ?? 'Error al procesar el archivo' });
+      } else {
+        dispatch({ type: 'SET_OFERTA', payload: data.rows });
+        setOfertaStatus({ resumen: data.resumen });
+      }
+    } catch {
+      setOfertaStatus({ error: 'Error de red al subir el archivo' });
+    } finally {
+      setLoadingOferta(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-slate-800">Carga de Archivos</h2>
 
+      {/* Archivo 1: Histórico */}
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-slate-700">
-          Archivo Histórico (.xlsx / .xls)
+          1. Archivo Histórico (.xlsx / .xls)
         </label>
+        <p className="text-xs text-slate-500">Registros académicos de gestiones anteriores (aprobados, reprobados, abandonos)</p>
         <input
           ref={historicoRef}
           type="file"
@@ -76,21 +106,22 @@ export function UploadPanel() {
         />
         {loadingHistorico && <p className="text-sm text-slate-500">Procesando...</p>}
         {historicoStatus?.resumen && (
-          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-1.5">
-            ✓ {historicoStatus.resumen}
-          </p>
+          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-1.5">✓ {historicoStatus.resumen}</p>
         )}
         {historicoStatus?.error && (
-          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-1.5">
-            ✗ {historicoStatus.error}
-          </p>
+          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-1.5">✗ {historicoStatus.error}</p>
+        )}
+        {historicoRows.length > 0 && !historicoStatus?.resumen && (
+          <p className="text-xs text-slate-400">✓ {historicoRows.length} registros cargados</p>
         )}
       </div>
 
+      {/* Archivo 2: Malla */}
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-slate-700">
-          Archivo de Malla Curricular (.xlsx / .xls)
+          2. Archivo de Malla Curricular (.xlsx / .xls)
         </label>
+        <p className="text-xs text-slate-500">Estructura de materias, semestres y prerrequisitos por carrera</p>
         <input
           ref={mallaRef}
           type="file"
@@ -101,15 +132,47 @@ export function UploadPanel() {
         />
         {loadingMalla && <p className="text-sm text-slate-500">Procesando...</p>}
         {mallaStatus?.resumen && (
-          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-1.5">
-            ✓ {mallaStatus.resumen}
-          </p>
+          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-1.5">✓ {mallaStatus.resumen}</p>
         )}
         {mallaStatus?.error && (
-          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-1.5">
-            ✗ {mallaStatus.error}
+          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-1.5">✗ {mallaStatus.error}</p>
+        )}
+        {mallaRows.length > 0 && !mallaStatus?.resumen && (
+          <p className="text-xs text-slate-400">✓ {mallaRows.length} materias cargadas</p>
+        )}
+      </div>
+
+      {/* Archivo 3: Oferta Actual */}
+      <div className="space-y-2">
+        <label className="block text-sm font-semibold text-slate-700">
+          3. Archivo de Oferta Actual (.xlsx / .xls)
+        </label>
+        <p className="text-xs text-slate-500">
+          Grupos abiertos en la gestión actual. El turno se determina por la última letra del grupo:
+          <strong> M</strong> = Mañana, <strong>T</strong> = Tarde, <strong>N</strong> = Noche
+          (ej: 1AM → Mañana, 2AT → Tarde, 1N → Noche)
+        </p>
+        <input
+          ref={ofertaRef}
+          type="file"
+          accept=".xlsx,.xls"
+          onChange={handleOferta}
+          disabled={loadingOferta}
+          className="block w-full text-sm text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
+        />
+        {loadingOferta && <p className="text-sm text-slate-500">Procesando...</p>}
+        {ofertaStatus?.resumen && (
+          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded px-3 py-1.5">✓ {ofertaStatus.resumen}</p>
+        )}
+        {ofertaStatus?.error && (
+          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-1.5">✗ {ofertaStatus.error}</p>
+        )}
+        {ofertaActualRows.length > 0 && !ofertaStatus?.resumen && (
+          <p className="text-xs text-slate-400">
+            ✓ {ofertaActualRows.length} grupos — turnos: {[...new Set(ofertaActualRows.map(r => r.turno))].join(', ')}
           </p>
         )}
+        <p className="text-xs text-slate-400 italic">Opcional — si no se carga, la proyección no estará dividida por turno</p>
       </div>
     </div>
   );

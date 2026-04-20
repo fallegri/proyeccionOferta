@@ -1,22 +1,24 @@
 'use client';
 
 import { createContext, useContext, useReducer, type ReactNode } from 'react';
-import type { AppState, HistoricoRow, MallaRow, ConfigCalculo, FilaProyeccion } from '@/lib/types';
+import type { AppState, HistoricoRow, MallaRow, OfertaActualRow, ConfigCalculo, FilaProyeccion } from '@/lib/types';
 
 type Action =
   | { type: 'SET_HISTORICO'; payload: HistoricoRow[] }
   | { type: 'SET_MALLA'; payload: MallaRow[] }
+  | { type: 'SET_OFERTA'; payload: OfertaActualRow[] }
   | { type: 'SET_CONFIG'; payload: ConfigCalculo }
   | { type: 'SET_RESULTADOS'; payload: FilaProyeccion[] }
   | { type: 'SET_PASO'; payload: AppState['paso'] }
   | { type: 'SET_CARGANDO'; payload: boolean }
   | { type: 'SET_ERRORES'; payload: string[] }
-  | { type: 'UPDATE_PROYECCION'; payload: { sigla: string; carrera: string; valor: number } }
+  | { type: 'UPDATE_PROYECCION'; payload: { sigla: string; carrera: string; turno: string | null; valor: number } }
   | { type: 'RESET' };
 
 const initialState: AppState = {
   historicoRows: [],
   mallaRows: [],
+  ofertaActualRows: [],
   config: null,
   resultados: [],
   paso: 'carga',
@@ -28,6 +30,7 @@ function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'SET_HISTORICO': return { ...state, historicoRows: action.payload };
     case 'SET_MALLA': return { ...state, mallaRows: action.payload };
+    case 'SET_OFERTA': return { ...state, ofertaActualRows: action.payload };
     case 'SET_CONFIG': return { ...state, config: action.payload };
     case 'SET_RESULTADOS': return { ...state, resultados: action.payload };
     case 'SET_PASO': return { ...state, paso: action.payload };
@@ -37,7 +40,7 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         resultados: state.resultados.map(r =>
-          r.sigla === action.payload.sigla && r.carrera === action.payload.carrera
+          r.sigla === action.payload.sigla && r.carrera === action.payload.carrera && r.turno === action.payload.turno
             ? { ...r, proyeccionInscritos: action.payload.valor, editadoManualmente: true }
             : r
         ),

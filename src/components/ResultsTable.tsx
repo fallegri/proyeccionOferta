@@ -13,7 +13,7 @@ export function ResultsTable() {
   function handleEdit(sigla: string, carrera: string, value: string) {
     const num = parseInt(value, 10);
     if (!isNaN(num) && num >= 0) {
-      dispatch({ type: 'UPDATE_PROYECCION', payload: { sigla, carrera, valor: num } });
+      dispatch({ type: 'UPDATE_PROYECCION', payload: { sigla, carrera, turno: null, valor: num } });
     }
   }
 
@@ -42,6 +42,7 @@ export function ResultsTable() {
               <th className="border-b border-slate-200 px-3 py-2 font-semibold">Materia Requisito</th>
               <th className="border-b border-slate-200 px-3 py-2 font-semibold">Cód. Requisito</th>
               <th className="border-b border-slate-200 px-3 py-2 font-semibold">Semestre</th>
+              <th className="border-b border-slate-200 px-3 py-2 font-semibold">Turno</th>
               <th className="border-b border-slate-200 px-3 py-2 font-semibold">Inscritos Req.</th>
               <th className="border-b border-slate-200 px-3 py-2 font-semibold">Proy. Reprobados</th>
               <th className="border-b border-slate-200 px-3 py-2 font-semibold">Proy. Abandonos</th>
@@ -66,6 +67,15 @@ export function ResultsTable() {
                 <td className="border-b border-slate-100 px-3 py-2 text-xs">{r.nombreRequisito ?? r.requisito}</td>
                 <td className="border-b border-slate-100 px-3 py-2 text-center font-mono text-xs">{r.codigoRequisito ?? r.requisito}</td>
                 <td className="border-b border-slate-100 px-3 py-2 text-center">{r.semestre ?? '—'}</td>
+                <td className="border-b border-slate-100 px-3 py-2 text-center text-xs">
+                  {r.turno ? (
+                    <span className={`px-2 py-0.5 rounded-full font-medium ${
+                      r.turno === 'Mañana' ? 'bg-yellow-100 text-yellow-700' :
+                      r.turno === 'Tarde' ? 'bg-orange-100 text-orange-700' :
+                      'bg-indigo-100 text-indigo-700'
+                    }`}>{r.turno}</span>
+                  ) : '—'}
+                </td>
                 <td className="border-b border-slate-100 px-3 py-2 text-center">{r.totalInscritosRequisito ?? '—'}</td>
                 <td className="border-b border-slate-100 px-3 py-2 text-center">{r.proyeccionReprobadosRequisito ?? '—'}</td>
                 <td className="border-b border-slate-100 px-3 py-2 text-center">{r.proyeccionAbandonosRequisito ?? '—'}</td>

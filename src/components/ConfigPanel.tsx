@@ -5,17 +5,29 @@ import { validarFormatoGestion, calcularGestionSiguiente, parsearGestionesAtipic
 
 export function ConfigPanel({ onNext }: { onNext: () => void }) {
   const { state, dispatch } = useAppStore();
-  const { historicoRows, mallaRows } = state;
+  const { historicoRows, mallaRows, ofertaActualRows } = state;
 
   const [gestionActual, setGestionActual] = useState('');
   const [gestionesAtipicasStr, setGestionesAtipicasStr] = useState('');
   const [metodo, setMetodo] = useState<'promedio_simple' | 'regresion_lineal'>('promedio_simple');
   const [errors, setErrors] = useState<{ gestion?: string; atipicas?: string }>({});
 
-  // Carrera mapping: planEstudio from historico -> carrera in malla
+  // Carrera mapping
   const planEstudiosHistorico = [...new Set(historicoRows.map(r => r.planEstudio))].sort();
   const carrerasMalla = [...new Set(mallaRows.map(r => r.carrera))].sort();
   const [carreraMap, setCarreraMap] = useState<Record<string, string>>({});
+
+  // Turnos disponibles en la oferta actual
+  const turnosDisponibles = [...new Set(ofertaActualRows.map(r => r.turno))].sort() as ('Mañana' | 'Tarde' | 'Noche')[];
+  const [turnosExcluidos, setTurnosExcluidos] = useState<Set<string>>(new Set());
+
+  const toggleTurno = (turno: string) => {
+    setTurnosExcluidos(prev => {
+      const next = new Set(prev);
+      if (next.has(turno)) next.delete(turno); else next.add(turno);
+      return next;
+    });
+  };
 
   const gestionSiguiente = validarFormatoGestion(gestionActual) ? calcularGestionSiguiente(gestionActual) : '';
 
@@ -48,6 +60,7 @@ export function ConfigPanel({ onNext }: { onNext: () => void }) {
         gestionesAtipicas,
         metodo,
         carreraMap: Object.keys(filteredMap).length > 0 ? filteredMap : undefined,
+        turnosExcluidos: turnosExcluidos.size > 0 ? ([...turnosExcluidos] as ('Mañana' | 'Tarde' | 'Noche')[]) : undefined,
       },
     });
     onNext();
@@ -133,6 +146,27 @@ export function ConfigPanel({ onNext }: { onNext: () => void }) {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Turno filter — only shown when oferta actual has data */}
+      {turnosDisponibles.length > 0 && (
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-slate-700">Turnos a proyectar</label>
+          <p className="text-xs text-slate-500">Desmarca los turnos que NO deseas incluir en la proyección.</p>
+          <div className="flex gap-4">
+            {turnosDisponibles.map(turno => (
+              <label key={turno} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!turnosExcluidos.has(turno)}
+                  onChange={() => toggleTurno(turno)}
+                  className="w-4 h-4 accent-blue-600"
+                />
+                <span className="text-sm text-slate-700">{turno}</span>
+              </label>
+            ))}
           </div>
         </div>
       )}

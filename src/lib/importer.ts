@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import type { HistoricoRow, MallaRow, ImportResult } from './types';
+import type { HistoricoRow, MallaRow, OfertaActualRow, ImportResult, Turno } from './types';
 
 // Normaliza un nombre de columna: minúsculas, sin tildes, sin espacios extra
 function normalizeCol(s: string): string {
@@ -258,6 +258,117 @@ export function parseMalla(buffer: Buffer): ImportResult<MallaRow> {
 
   const carreras = new Set(rows.map(r => r.carrera));
   const resumen = `${rows.length} materias cargadas, ${carreras.size} carrera(s)`;
+
+  return { rows, omitidas, resumen, errores: [] };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OFERTA ACTUAL
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Extrae el turno a partir del código de grupo.
+ * Regla: la letra que identifica el turno es la última letra del grupo.
+ *   M → Mañana  (ej: 1AM, 2AM, 3M)
+ *   T → Tarde   (ej: 1AT, 2T)
+ *   N → Noche   (ej: 1N, 2AN)
+ * Retorna null si no se puede determinar el turno.
+ */
+function extraerTurno(grupo: string): Turno | null {
+  const g = grupo.trim().toUpperCase();
+  if (!g) return null;
+  const lastChar = g[g.length - 1];
+  if (lastChar === 'M') return 'Mañana';
+  if (lastChar === 'T') return 'Tarde';
+  if (lastChar === 'N') return 'Noche';
+  return null;
+}
+
+// Columnas requeridas de la oferta actual (normalizadas)
+// No incluye abandono, reprobados, aprobados (aún no disponibles)
+const OFERTA_REQUIRED_NORMALIZED = [
+  'codigo plan estudio',
+  'plan estudio',
+  'sigla',
+  'grupo',
+  'total alumnos',
+];
+
+export function parseOfertaActual(buffer: Buffer): ImportResult<OfertaActualRow> {
+  let workbook: XLSX.WorkBook;
+  try {
+    workbook = XLSX.read(buffer, { type: 'buffer' });
+  } catch {
+    return { rows: [], omitidas: 0, resumen: '', errores: ['Archivo no válido o formato no soportado. Use .xlsx o .xls'] };
+  }
+
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) {
+    return { rows: [], omitidas: 0, resumen: '', errores: ['El archivo está vacío o no contiene hojas'] };
+  }
+
+  const sheet = workbook.Sheets[sheetName];
+  const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null });
+
+  if (rawRows.length === 0) {
+    return { rows: [], omitidas: 0, resumen: 'Sin registros', errores: [] };
+  }
+
+  const colMap = buildColMap(rawRows[0]);
+
+  const missingCols = OFERTA_REQUIRED_NORMALIZED.filter(norm => !colMap.has(norm));
+  if (missingCols.length > 0) {
+    return { rows: [], omitidas: 0, resumen: '', errores: [`Columnas faltantes: ${missingCols.join(', ')}`] };
+  }
+
+  const get = (raw: Record<string, unknown>, norm: string) => {
+    const key = colMap.get(norm);
+    return key ? raw[key] : null;
+  };
+
+  const rows: OfertaActualRow[] = [];
+  let omitidas = 0;
+  let sinTurno = 0;
+
+  for (const raw of rawRows) {
+    const sigla = get(raw, 'sigla');
+    const codigoPlan = get(raw, 'codigo plan estudio');
+    const grupoRaw = get(raw, 'grupo');
+
+    if (!sigla || !codigoPlan || !grupoRaw) {
+      omitidas++;
+      continue;
+    }
+
+    const grupo = String(grupoRaw).trim();
+    const turno = extraerTurno(grupo);
+
+    if (!turno) {
+      // Grupo con turno no reconocible — omitir con conteo separado
+      sinTurno++;
+      continue;
+    }
+
+    const gestionRaw = get(raw, 'gestion');
+    const gestion = gestionRaw ? normalizarGestion(String(gestionRaw)) : '';
+
+    rows.push({
+      codigoPlanEstudio: String(codigoPlan),
+      planEstudio: String(get(raw, 'plan estudio') ?? ''),
+      codigoGestion: String(get(raw, 'codigo gestion') ?? ''),
+      gestion,
+      turno,
+      grupo,
+      codigoMateria: String(get(raw, 'codigo materia') ?? ''),
+      materia: String(get(raw, 'materia') ?? ''),
+      sigla: String(sigla),
+      totalAlumnos: Number(get(raw, 'total alumnos') ?? 0),
+    });
+  }
+
+  const carreras = new Set(rows.map(r => r.planEstudio));
+  const turnos = [...new Set(rows.map(r => r.turno))].join(', ');
+  const resumen = `${rows.length} grupos cargados, ${carreras.size} carrera(s), turnos: ${turnos}${sinTurno > 0 ? ` (${sinTurno} grupos sin turno reconocible omitidos)` : ''}`;
 
   return { rows, omitidas, resumen, errores: [] };
 }
