@@ -260,11 +260,11 @@ export function calcularProyecciones(
       }
       semestresActualesPorCarrera.get(carreraNormKey)!.add(sem);
     }
-    // Calculate projected semesters
+    // Calculate projected semesters: every semester N in current offer → N+1 next gestión
     for (const [carreraNormKey, semsActuales] of semestresActualesPorCarrera) {
       const semsProyectados = new Set<number>();
       for (const s of semsActuales) {
-        semsProyectados.add(s % 2 === 1 ? s + 1 : s);
+        semsProyectados.add(s + 1);
       }
       semestresProyectadosPorCarrera.set(carreraNormKey, semsProyectados);
     }
