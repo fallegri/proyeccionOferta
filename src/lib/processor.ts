@@ -234,12 +234,57 @@ export function calcularProyecciones(
     turnoMap.set(o.turno, (turnoMap.get(o.turno) ?? 0) + o.totalAlumnos);
   }
 
+  /**
+   * Semestres proyectados por carrera:
+   * Si la oferta actual tiene semestres {1,3,5,7} para una carrera,
+   * la siguiente gestión proyecta {2,4,6,8} (impares avanzan al siguiente).
+   * Los semestres pares se mantienen (8→8, 9→9 si existen en la oferta).
+   * Si no hay oferta cargada, se proyectan todos los semestres de la malla.
+   *
+   * Regla: semestre_proyectado = semestre_actual % 2 === 1
+   *          ? semestre_actual + 1   (impar → siguiente par)
+   *          : semestre_actual        (par → se repite)
+   */
+  const semestresProyectadosPorCarrera = new Map<string, Set<number>>();
+  if (ofertaActual.length > 0) {
+    // Collect semestres present in oferta per carrera (using malla to get semestre number)
+    const semestresActualesPorCarrera = new Map<string, Set<number>>();
+    for (const o of ofertaActual) {
+      const carreraResolved = resolveCarrera(o.planEstudio);
+      const carreraNormKey = norm(carreraResolved);
+      const mallaEntry = mallaMap.get(`${norm(o.sigla)}|||${carreraNormKey}`);
+      if (!mallaEntry) continue;
+      const sem = mallaEntry.semestre;
+      if (!semestresActualesPorCarrera.has(carreraNormKey)) {
+        semestresActualesPorCarrera.set(carreraNormKey, new Set());
+      }
+      semestresActualesPorCarrera.get(carreraNormKey)!.add(sem);
+    }
+    // Calculate projected semesters
+    for (const [carreraNormKey, semsActuales] of semestresActualesPorCarrera) {
+      const semsProyectados = new Set<number>();
+      for (const s of semsActuales) {
+        semsProyectados.add(s % 2 === 1 ? s + 1 : s);
+      }
+      semestresProyectadosPorCarrera.set(carreraNormKey, semsProyectados);
+    }
+  }
+
   const result: FilaProyeccion[] = [];
 
   for (const mallaRow of malla) {
     const { carrera, sigla, requisito, requiereIngresoManual } = mallaRow;
     const carreraNorm = norm(carrera);
     const siglaNorm = norm(sigla);
+
+    // Filter by projected semesters — only include if oferta is loaded and this
+    // materia's semester is in the projected set for this carrera
+    if (semestresProyectadosPorCarrera.size > 0) {
+      const semsProyectados = semestresProyectadosPorCarrera.get(carreraNorm);
+      if (!semsProyectados || !semsProyectados.has(mallaRow.semestre)) {
+        continue; // skip — this semester is not being offered next gestión
+      }
+    }
 
     // Determine turnos to generate
     const ofertaKey = `${siglaNorm}|||${carreraNorm}`;
