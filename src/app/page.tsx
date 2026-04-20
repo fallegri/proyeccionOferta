@@ -28,7 +28,17 @@ export default function Home() {
       if (!res.ok) {
         dispatch({ type: 'SET_ERRORES', payload: [(data as { error: string }).error ?? 'Error al calcular'] });
       } else {
-        dispatch({ type: 'SET_RESULTADOS', payload: Array.isArray(data) ? data : [] });
+        const payload = data as { proyecciones?: unknown[]; _diag?: Record<string, unknown> } | unknown[];
+        const proyecciones = Array.isArray(payload) ? payload : ((payload as { proyecciones?: unknown[] }).proyecciones ?? []);
+        const diag = Array.isArray(payload) ? null : (payload as { _diag?: Record<string, unknown> })._diag;
+        if (diag) {
+          console.log('[DIAG semestres]', JSON.stringify(diag, null, 2));
+          // Show in UI temporarily
+          dispatch({ type: 'SET_ERRORES', payload: [
+            `DIAG: ofertaRows=${diag.ofertaRows} | nsemEnOferta=${JSON.stringify(diag.nsemEnOferta)} | esperados=${JSON.stringify(diag.semestresProyectadosEsperados)} | enProyeccion=${JSON.stringify(diag.semestresEnProyeccion)} | primerOferta.nsem=${(diag.primerOferta as Record<string,unknown>)?.nsem}`
+          ]});
+        }
+        dispatch({ type: 'SET_RESULTADOS', payload: proyecciones as import('@/lib/types').FilaProyeccion[] });
         dispatch({ type: 'SET_PASO', payload: 'resultados' });
       }
     } catch {
